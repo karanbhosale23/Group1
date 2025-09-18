@@ -12,6 +12,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
+
+const getApiBase = () => {
+  // This works in Expo Go and development mode
+  const debuggerHost = Constants.manifest?.debuggerHost || Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(":")[0];
+    return `http://${ip}:8080/api/v1/auth`;
+  }
+  // Fallback for production or if not available
+  return "http://localhost:8080/api/v1/auth";
+};
 
 const RegistrationPage = () => {
   const router = useRouter();
@@ -21,7 +33,7 @@ const RegistrationPage = () => {
   const [password, setPassword] = useState("");
   const [business, setBusinessname] = useState("");
 
-  const API_BASE = "http://192.168.1.41:8080/api/v1/auth"; // ✅ your backend base URL
+  const API_BASE = getApiBase();
 
   const handleSignUp = async () => {
     if (!username || !email || !phone || !password || !business) {
@@ -111,7 +123,7 @@ const RegistrationPage = () => {
             </TouchableOpacity>
 
             {/* Login Link */}
-            <TouchableOpacity onPress={() => router.push("../LogIn")}>
+            <TouchableOpacity onPress={() => router.push("../LogIn")}> 
               <Text style={styles.loginText}>Already have an account? Login</Text>
             </TouchableOpacity>
           </View>

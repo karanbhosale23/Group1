@@ -1,15 +1,36 @@
 import ForgetPass from "../(tabs)/ForgetPass";
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
-import { Text, StyleSheet, View, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from "expo-constants";
+import Ionicons from "@expo/vector-icons/Ionicons"; // 👈 Add this for eye icon
+
+const getApiBase = () => {
+  const debuggerHost =
+    Constants.manifest?.debuggerHost || Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(":")[0];
+    return `http://${ip}:8080/api/v1/auth`;
+  }
+  return "http://localhost:8080/api/v1/auth";
+};
 
 const LogIn = () => {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const API_BASE = "http://192.168.1.41:8080/api/v1/auth";
+  const API_BASE = getApiBase();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -17,12 +38,13 @@ const LogIn = () => {
       Alert.alert("Error", "Please enter both username and password");
       return;
     }
-    // Check for admin credentials (from application.properties)
+
     if (username.trim() === "admin" && password.trim() === "adminpassword") {
       Alert.alert("Admin Login", "Welcome, Admin!");
       router.push("../(tabs)/AdminPage");
       return;
     }
+
     try {
       const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
@@ -32,12 +54,15 @@ const LogIn = () => {
           password: password.trim(),
         }),
       });
+
       if (response.ok) {
         const data = await response.json();
-        Alert.alert("Success", "Login successful!");
+        Alert.alert("Welcome", `Hello, ${username.trim()}!`);
         console.log("Login successful!", data);
-        // Redirect merchant to Transaction page, pass username
-        router.push({ pathname: "../(tabs)/Transaction", params: { username: username.trim() } });
+        router.push({
+          pathname: "../(tabs)/Transaction",
+          params: { username: username.trim() },
+        });
       } else {
         const errorText = await response.text();
         Alert.alert("Login Failed", errorText || `Status ${response.status}`);
@@ -49,42 +74,64 @@ const LogIn = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
         <View style={styles.header}>
           <Text style={styles.headerText}>ThynkTech India</Text>
         </View>
+
         <View style={styles.loginCard}>
           <Text style={styles.loginTitle}>Login</Text>
+
           <TextInput
             style={styles.input}
-            placeholder="Username Name"
+            placeholder="Username"
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-          <View style={styles.row}>
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Text style={styles.rememberMeText}>{showPassword ? "Hide Password" : "Show Password"}</Text>
+
+          {/* Password input with Eye Icon */}
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={20}
+                color="#2576e0"
+              />
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.row}>
             <TouchableOpacity onPress={() => setShowForgotModal(true)}>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
-            <ForgetPass visible={showForgotModal} onClose={() => setShowForgotModal(false)} />
+            <ForgetPass
+              visible={showForgotModal}
+              onClose={() => setShowForgotModal(false)}
+            />
           </View>
+
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Sign up</Text>
+            <Text style={styles.loginButtonText}>LOGIN</Text>
           </TouchableOpacity>
+
           <View style={styles.signUpContainer}>
             <Text style={styles.noAccountText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => router.push("../")}>
-              <Text style={styles.signUpText}>SIGN UP</Text>
+              <Text style={styles.signUpText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -140,18 +187,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2576e0",
+    borderRadius: 6,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    height: 45,
+  },
+  eyeIcon: {
+    padding: 5,
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
-  },
-  rememberMeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rememberMeText: {
-    marginLeft: 5,
   },
   forgotPassword: {
     color: "#2576e0",

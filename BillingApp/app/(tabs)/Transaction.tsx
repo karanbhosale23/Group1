@@ -1,42 +1,75 @@
-import * as React from "react";
-import {StyleSheet, View, Image, Text} from "react-native";
+import React from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
+import { StyleSheet, View, Text, Alert } from "react-native";
+import { Animated, Easing } from "react-native";
+import { Modal, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
-// import Component from "../assets/" // Uncomment and fix this import if you have a component or image
+import { useFocusEffect } from "expo-router";
 
 const Transaction = () => {
+  const [showWelcomeFlag, setShowWelcomeFlag] = useState(true);
+  const slideAnim = useRef(new Animated.Value(400)).current; // Start off-screen right
   const params = useLocalSearchParams();
   const username = params.username || "Merchant";
+
+  // Show popup every time Transaction page is focused
+  // Show custom modal on first mount/focus
+  useFocusEffect(
+    useCallback(() => {
+      setShowWelcomeFlag(true);
+      // Slide in from right
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+      // Slide out after 2 seconds
+      const timer = setTimeout(() => {
+        Animated.timing(slideAnim, {
+          toValue: 400,
+          duration: 400,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }).start(() => setShowWelcomeFlag(false));
+      }, 2000);
+      return () => clearTimeout(timer);
+    }, [username, slideAnim])
+  );
+
   return (
     <SafeAreaView style={styles.viewBg}>
+      {/* Animated flag-style welcome message */}
+      {showWelcomeFlag && (
+        <Animated.View
+          style={[styles.flagContainer, { transform: [{ translateX: slideAnim }] }]}
+        >
+          <Text style={styles.flagText}>Welcome, {username}!</Text>
+        </Animated.View>
+      )}
       <View style={[styles.view, styles.viewBg]}>
         <View style={[styles.child, styles.childPosition]} />
-        {/* <Image style={[styles.depth4Frame1, styles.depth4FramePosition]} resizeMode="cover" /> */}
         <Text style={styles.harshalThakare}>{username}</Text>
         <View style={styles.item} />
         <Text style={styles.quickLinks}>Quick Links</Text>
-        {/* <Component style={[styles.depth4Frame0, styles.depth4FramePosition]} width={24} height={24} /> */}
         <View style={[styles.inner, styles.innerLayout]} />
         <View style={[styles.rectangleView, styles.innerLayout]} />
-        <Text style={[styles.transactionDetails, styles.detailsTypo]}>{`Transaction Details `}</Text>
-        <Text style={[styles.partyDetails, styles.detailsTypo]}>{`Party Details `}</Text>
-        {/* <Image style={[styles.rectangleIcon, styles.childLayout1]} resizeMode="cover" />
-        <Image style={[styles.transactionChild, styles.childLayout1]} resizeMode="cover" />
-        <Image style={[styles.child2, styles.childLayout1]} resizeMode="cover" />
-        <Image style={[styles.child3, styles.childLayout1]} resizeMode="cover" /> */}
+        <Text style={[styles.transactionDetails, styles.detailsTypo]}>
+          Transaction Details
+        </Text>
+        <Text style={[styles.partyDetails, styles.detailsTypo]}>
+          Party Details
+        </Text>
         <Text style={[styles.addTxn, styles.txnClr]}>Add Txn</Text>
         <Text style={[styles.saleReport, styles.txnClr]}>Sale Report</Text>
         <Text style={[styles.txnSettings, styles.txnClr]}>Txn Settings</Text>
         <Text style={[styles.showAll, styles.txnClr]}>Show All</Text>
         <View style={[styles.child4, styles.childPosition]} />
-        {/* <Image style={[styles.child5, styles.childLayout]} resizeMode="cover" />
-        <Image style={[styles.child6, styles.childLayout]} resizeMode="cover" />
-        <Image style={[styles.child7, styles.childLayout]} resizeMode="cover" />
-        <Image style={styles.child8} resizeMode="cover" /> */}
         <Text style={[styles.home, styles.homeTypo]}>HOME</Text>
         <Text style={[styles.dashboard, styles.child9Position]}>DASHBOARD</Text>
         <Text style={[styles.items, styles.homeTypo]}>ITEMS</Text>
-        <Text style={[styles.menu, styles.homeTypo]}>MENU</Text>
+  <Text style={[styles.menu, styles.homeTypo]}>MENU</Text>
         <View style={[styles.child9, styles.child9Position]} />
         <Text style={[styles.addNewSale, styles.homeTypo]}>Add New Sale</Text>
       </View>
@@ -44,26 +77,56 @@ const Transaction = () => {
   );
 };
 
-// ...styles unchanged, paste your styles here ...
-
 const styles = StyleSheet.create({
+  flagContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#4dcc62ff',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 100,
+    elevation: 10,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    marginTop: 0,
+  },
+  flagText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  welcomeContainer: {
+    width: '100%',
+    backgroundColor: '#2576e0',
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  welcomeText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   transaction: {
     flex: 1,
-    backgroundColor: "#d3e4f4"
+    backgroundColor: "#d3e4f4",
   },
   viewBg: {
     backgroundColor: "#d3e4f4",
-    flex: 1
+    flex: 1,
   },
   childPosition: {
     width: 412,
     left: 0,
     backgroundColor: "#fff",
-    position: "absolute"
+    position: "absolute",
   },
   depth4FramePosition: {
     opacity: 0.8,
-    position: "absolute"
+    position: "absolute",
   },
   innerLayout: {
     height: 40,
@@ -72,7 +135,7 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
     top: 85,
     borderRadius: 30,
-    position: "absolute"
+    position: "absolute",
   },
   detailsTypo: {
     fontSize: 13,
@@ -80,39 +143,39 @@ const styles = StyleSheet.create({
     textAlign: "left",
     fontFamily: "Inter-Medium",
     fontWeight: "500",
-    position: "absolute"
+    position: "absolute",
   },
   childLayout1: {
     width: 50,
     top: 209,
     height: 50,
-    position: "absolute"
+    position: "absolute",
   },
   txnClr: {
     opacity: 0.7,
-    color: "#000"
+    color: "#000",
   },
   childLayout: {
     width: 40,
     top: 850,
     height: 40,
-    position: "absolute"
+    position: "absolute",
   },
   homeTypo: {
     fontFamily: "Inter-SemiBold",
     fontWeight: "600",
     lineHeight: 18,
     fontSize: 15,
-    textAlign: "left"
+    textAlign: "left",
   },
   child9Position: {
     left: 118,
-    position: "absolute"
+    position: "absolute",
   },
   view: {
     width: "100%",
     height: 917,
-    overflow: "hidden"
+    overflow: "hidden",
   },
   child: {
     top: 0,
@@ -120,21 +183,12 @@ const styles = StyleSheet.create({
     shadowColor: "rgba(0, 0, 0, 0.25)",
     shadowOffset: {
       width: 0,
-      height: 4
+      height: 4,
     },
     shadowRadius: 4,
     elevation: 4,
     shadowOpacity: 1,
-    height: 145
-  },
-  depth4Frame1: {
-    top: 11,
-    left: 361,
-    borderRadius: 12,
-    width: 29,
-    maxWidth: 480,
-    height: 50,
-    opacity: 0.8
+    height: 145,
   },
   harshalThakare: {
     top: 21,
@@ -144,7 +198,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Medium",
     fontWeight: "500",
     color: "#000",
-    position: "absolute"
+    position: "absolute",
   },
   item: {
     top: 162,
@@ -153,7 +207,7 @@ const styles = StyleSheet.create({
     width: 381,
     height: 144,
     backgroundColor: "#fff",
-    position: "absolute"
+    position: "absolute",
   },
   quickLinks: {
     top: 173,
@@ -163,45 +217,27 @@ const styles = StyleSheet.create({
     color: "#000",
     fontFamily: "Inter-Medium",
     fontWeight: "500",
-    position: "absolute"
-  },
-  depth4Frame0: {
-    top: 24,
-    left: 322,
-    width: 24,
-    height: 24
+    position: "absolute",
   },
   inner: {
     left: 31,
     backgroundColor: "rgba(201, 35, 35, 0.2)",
-    borderColor: "#c92323"
+    borderColor: "#c92323",
   },
   rectangleView: {
     left: 215,
     borderColor: "rgba(0, 0, 0, 0.2)",
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
   },
   transactionDetails: {
     left: 59,
-    color: "#c92323"
+    color: "#c92323",
   },
   partyDetails: {
     left: 263,
     opacity: 0.5,
     color: "#000",
-    top: 97
-  },
-  rectangleIcon: {
-    left: 47
-  },
-  transactionChild: {
-    left: 139
-  },
-  child2: {
-    left: 235
-  },
-  child3: {
-    left: 317
+    top: 97,
   },
   addTxn: {
     top: 264,
@@ -211,7 +247,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Medium",
     fontWeight: "500",
     position: "absolute",
-    left: 47
+    left: 47,
   },
   saleReport: {
     left: 125,
@@ -221,7 +257,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
     fontFamily: "Inter-Medium",
     fontWeight: "500",
-    position: "absolute"
+    position: "absolute",
   },
   txnSettings: {
     left: 222,
@@ -231,7 +267,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
     fontFamily: "Inter-Medium",
     fontWeight: "500",
-    position: "absolute"
+    position: "absolute",
   },
   showAll: {
     top: 264,
@@ -241,27 +277,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Medium",
     fontWeight: "500",
     position: "absolute",
-    left: 317
+    left: 317,
   },
   child4: {
     top: 836,
-    height: 81
-  },
-  child5: {
-    left: 38
-  },
-  child6: {
-    left: 146
-  },
-  child7: {
-    left: 256
-  },
-  child8: {
-    top: 852,
-    left: 343,
-    width: 31,
-    height: 30,
-    position: "absolute"
+    height: 81,
   },
   home: {
     left: 36,
@@ -269,7 +289,7 @@ const styles = StyleSheet.create({
     top: 891,
     fontWeight: "600",
     lineHeight: 18,
-    position: "absolute"
+    position: "absolute",
   },
   dashboard: {
     fontFamily: "Inter-SemiBold",
@@ -279,7 +299,7 @@ const styles = StyleSheet.create({
     textAlign: "left",
     top: 891,
     opacity: 0.7,
-    color: "#000"
+    color: "#000",
   },
   items: {
     left: 252,
@@ -288,7 +308,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     opacity: 0.7,
     color: "#000",
-    position: "absolute"
+    position: "absolute",
   },
   menu: {
     left: 336,
@@ -297,7 +317,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     opacity: 0.7,
     color: "#000",
-    position: "absolute"
+    position: "absolute",
   },
   child9: {
     top: 771,
@@ -305,14 +325,14 @@ const styles = StyleSheet.create({
     width: 196,
     height: 59,
     borderRadius: 30,
-    left: 118
+    left: 118,
   },
   addNewSale: {
     top: 792,
     left: 162,
     color: "#fff",
-    position: "absolute"
-  }
+    position: "absolute",
+  },
 });
 
 export default Transaction;
