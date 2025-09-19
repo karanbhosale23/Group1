@@ -42,12 +42,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors() // enable CORS (uses your CorsConfig)
+                .cors()
                 .and()
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
-                        // Allow register & login without authentication
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        // Allow register, login, forgot-password, reset-password without authentication
+                        .requestMatchers(
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password")
+                        .permitAll()
 
                         // Allow admin access to user management endpoints
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasRole("ADMIN")
@@ -59,9 +64,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 }

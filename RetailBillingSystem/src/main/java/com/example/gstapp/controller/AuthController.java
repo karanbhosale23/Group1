@@ -1,16 +1,15 @@
-// src/main/java/com/example/gstapp/controller/AuthController.java
 package com.example.gstapp.controller;
 
 import com.example.gstapp.dto.AuthRequestDTO;
 import com.example.gstapp.dto.AuthResponseDTO;
 import com.example.gstapp.dto.RegisterRequestDTO;
 import com.example.gstapp.service.AuthService;
-
 import jakarta.validation.Valid;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -32,5 +31,22 @@ public class AuthController {
     public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO request) {
         AuthResponseDTO response = authService.authenticate(request);
         return ResponseEntity.ok(response);
+    }
+
+    // Forgot password endpoint
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        authService.forgotPassword(email);
+        return ResponseEntity.ok("Password reset link sent to your email");
+    }
+
+    // Reset password endpoint
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Password has been reset successfully");
     }
 }

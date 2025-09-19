@@ -69,7 +69,7 @@ const Transaction = () => {
         <Text style={[styles.home, styles.homeTypo]}>HOME</Text>
         <Text style={[styles.dashboard, styles.child9Position]}>DASHBOARD</Text>
         <Text style={[styles.items, styles.homeTypo]}>ITEMS</Text>
-  <Text style={[styles.menu, styles.homeTypo]}>MENU</Text>
+        <Text style={[styles.menu, styles.homeTypo]}>MENU</Text>
         <View style={[styles.child9, styles.child9Position]} />
         <Text style={[styles.addNewSale, styles.homeTypo]}>Add New Sale</Text>
       </View>

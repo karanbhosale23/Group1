@@ -5,18 +5,31 @@ import com.example.gstapp.dto.AuthRequestDTO;
 import com.example.gstapp.dto.AuthResponseDTO;
 import com.example.gstapp.dto.RegisterRequestDTO;
 import com.example.gstapp.exception.AppException;
+import com.example.gstapp.model.PasswordResetToken;
 import com.example.gstapp.model.User;
 import com.example.gstapp.model.User.Role;
+import com.example.gstapp.repository.PasswordResetTokenRepository;
 import com.example.gstapp.repository.UserRepository;
 import com.example.gstapp.util.JwtUtil;
+import java.util.UUID;
+
+import java.time.LocalDateTime;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
 
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
+    private EmailService emailService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -24,9 +37,9 @@ public class AuthService {
     private static final String PEPPER = System.getenv("PASSWORD_PEPPER");
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtUtil jwtUtil) {
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -39,7 +52,8 @@ public class AuthService {
 
         // Password strength validation
         if (!isValidPassword(rawPassword)) {
-            throw new AppException("Password does not meet security criteria. It must be at least 8 characters long and include uppercase letters, digits, and special characters.");
+            throw new AppException(
+                    "Password does not meet security criteria. It must be at least 8 characters long and include uppercase letters, digits, and special characters.");
         }
 
         // Check if username or email already exists
@@ -71,11 +85,16 @@ public class AuthService {
 
     // Password validation method
     private boolean isValidPassword(String password) {
-        if (password == null) return false;
-        if (password.length() < 8) return false;
-        if (!password.matches(".*[A-Z].*")) return false;
-        if (!password.matches(".*[0-9].*")) return false;
-        if (!password.matches(".*[!@#$%^&*()].*")) return false;
+        if (password == null)
+            return false;
+        if (password.length() < 8)
+            return false;
+        if (!password.matches(".*[A-Z].*"))
+            return false;
+        if (!password.matches(".*[0-9].*"))
+            return false;
+        if (!password.matches(".*[!@#$%^&*()].*"))
+            return false;
         return true;
     }
 
@@ -85,9 +104,9 @@ public class AuthService {
         String passwordWithPepper = request.getPassword() + (PEPPER != null ? PEPPER : "");
 
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                request.getUsername(),
-                passwordWithPepper));
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        passwordWithPepper));
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException("Invalid username or password"));
@@ -101,4 +120,41 @@ public class AuthService {
 
         return response;
     }
+
+    // Forgot password method
+    public void forgotPassword(String email) {
+        // Validate user existence
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User with email " + email + " not found"));
+
+        // Generate unique reset token
+        String token = UUID.randomUUID().toString();
+
+        // Save token with 30 minutes expiry
+        PasswordResetToken prt = new PasswordResetToken(token, email, LocalDateTime.now().plusMinutes(30));
+        passwordResetTokenRepository.save(prt);
+
+        // Send reset link email with token
+        emailService.sendResetEmail(email, token);
+    }
+
+    // Reset password method
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
+
+        if (passwordResetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Expired password reset token");
+        }
+
+        User user = userRepository.findByEmail(passwordResetToken.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String passwordWithPepper = newPassword + (PEPPER != null ? PEPPER : "");
+        user.setPassword(passwordEncoder.encode(passwordWithPepper));
+        userRepository.save(user);
+
+        passwordResetTokenRepository.delete(passwordResetToken);
+    }
+
 }
